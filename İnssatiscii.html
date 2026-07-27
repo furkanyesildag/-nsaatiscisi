@@ -139,6 +139,24 @@ const siluet=document.getElementById('siluet');
 const MALZEME=[{e:'🧱',p:10},{e:'🪵',p:10},{e:'🔩',p:10},{e:'🪛',p:10},{e:'🚜',p:15},{e:'🛠️',p:15}];
 const VINC={e:'🏗️',p:50};
 
+/* ===== ONLINE SKOR TABLOSU =====================================
+   Firebase Realtime Database adresini tırnakların arasına yapıştır. Örn:
+   const FIREBASE_DB='https://insaat-yilani-default-rtdb.firebaseio.com';
+   Boş kalırsa tablo yalnızca bu cihazda tutulur.               */
+const FIREBASE_DB='';
+/* =============================================================== */
+const ONLINE=/^https:\/\//.test(FIREBASE_DB);
+const SKOR_URL=ONLINE?FIREBASE_DB.replace(/\/+$/,'')+'/skorlar.json':'';
+function ozetle(arr){
+  const m={};
+  for(const k of (arr||[])){
+    if(!k||!k.isim) continue;
+    const a=String(k.isim).toLowerCase();
+    if(!m[a]||(m[a].skor||0)<(k.skor||0)) m[a]=k;
+  }
+  return Object.keys(m).map(a=>m[a]).sort((x,y)=>(y.skor||0)-(x.skor||0)).slice(0,15);
+}
+
 let hucre=20, dpr=1, durum='hazir', zorluk='kolay';
 let yilan, yon, sonYon, kuyruk, yem, altin, engeller, skor, kat, malzeme, hiz, birikim, onceki, rekor=0, buyudu=false;
 let parcaciklar=[], yazilar=[], sesAcik=true, ac=null;
@@ -173,24 +191,37 @@ async function rekorYukle(){
 async function rekorKaydet(){ await yaz('insaatYilani:rekor',String(rekor)); }
 async function isimKaydet(){ await yaz('insaatYilani:isim',isim); }
 async function tabloOku(){
-  const v=await oku(TABLO_ANAHTAR,ORTAK);
-  try{ tablo=v?(JSON.parse(v)||[]):[]; }catch(e){ tablo=[]; }
+  if(ONLINE){
+    try{
+      const r=await fetch(SKOR_URL+'?t='+Date.now(),{cache:'no-store'});
+      const j=await r.json();
+      tablo=ozetle(j?Object.keys(j).map(k=>j[k]):[]);
+    }catch(e){}
+    tabloDurum='hazir';
+    return tablo;
+  }
+  const v=await oku(TABLO_ANAHTAR,false);
+  try{ tablo=ozetle(v?JSON.parse(v):[]); }catch(e){ tablo=[]; }
   tabloDurum='hazir';
   return tablo;
 }
 async function tabloYaz(kayit){
+  if(ONLINE){
+    try{ await fetch(SKOR_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(kayit)}); }catch(e){}
+    return tabloOku();
+  }
   await tabloOku();
-  const i=tablo.findIndex(k=>(k.isim||'').toLowerCase()===kayit.isim.toLowerCase());
+  const key=kayit.isim.toLowerCase();
+  const i=tablo.findIndex(k=>(k.isim||'').toLowerCase()===key);
   if(i>=0){ if((tablo[i].skor||0)<kayit.skor) tablo[i]=kayit; }
   else tablo.push(kayit);
-  tablo.sort((a,b)=>(b.skor||0)-(a.skor||0));
-  tablo=tablo.slice(0,15);
-  await yaz(TABLO_ANAHTAR,JSON.stringify(tablo),ORTAK);
+  tablo=ozetle(tablo);
+  await yaz(TABLO_ANAHTAR,JSON.stringify(tablo),false);
   return tablo;
 }
 function tabloHtml(limit){
   const liste=tablo.slice(0,limit||8);
-  const baslik = ORTAK ? 'ŞANTİYE ŞEFLERİ / ORTAK TABLO' : 'ŞANTİYE ŞEFLERİ / BU TELEFON';
+  const baslik = ONLINE ? 'ŞANTİYE ŞEFLERİ / ONLINE' : 'ŞANTİYE ŞEFLERİ / BU TELEFON';
   let ic;
   if(tabloDurum!=='hazir') ic='<div class="bos">Tablo yükleniyor</div>';
   else if(!liste.length) ic='<div class="bos">Henüz kimse ustalaşmadı. İlk sırayı sen aç.</div>';
@@ -538,9 +569,9 @@ function acilis(){
     '<div class="mod"><button data-z="kolay" class="aktif">DUVAR GEÇİŞLİ</button><button data-z="zor">ÇİT ÖLDÜRÜR</button></div>'+
     '<button class="btn" id="baslaBtn">ŞANTİYEYİ AÇ</button>'+
     tabloHtml(8)+
-    (ORTAK
-      ?'<div class="alt">Skor tablosu ortak. Bu bağlantıyı açan herkes yazdığın adı ve puanı görür.</div>'
-      :'<div class="alt">Bu dosya tek başına çalışıyor, internet gerekmiyor. Skor tablosu bu telefonda tutulur, sonuçları WhatsApp\'ta karşılaştırın.</div>');
+    (ONLINE
+      ?'<div class="alt">Skor tablosu online. Bu bağlantıyı açan herkes adını ve puanını canlı görür.</div>'
+      :'<div class="alt">Skor tablosu şu an bu telefonda tutuluyor. Sonuçları WhatsApp\'ta karşılaştırın.</div>');
   kaplama.querySelectorAll('.mod button').forEach(b=>b.onclick=()=>{
     zorluk=b.dataset.z;
     kaplama.querySelectorAll('.mod button').forEach(x=>x.classList.remove('aktif'));
