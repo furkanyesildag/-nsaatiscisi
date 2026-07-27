@@ -8,6 +8,10 @@
 <meta property="og:description" content="Malzemeleri topla, şantiyeni kat kat yükselt. Skor tablosunda kim önde?">
 <meta name="description" content="Malzemeleri topla, şantiyeni kat kat yükselt.">
 <meta name="theme-color" content="#16181d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="İnşaat Yılanı">
 <style>
   :root{
     --asfalt:#16181d; --asfalt2:#0e1014; --sari:#ffc400; --sari2:#ffe07a;
@@ -82,13 +86,8 @@
     user-select:text;-webkit-user-select:text;word-break:break-all;text-align:left;
   }
 
-  #pad{flex:none;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,var(--asfalt),#101216);display:flex;justify-content:center;}
-  .dpad{position:relative;display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(3,55px);gap:7px;padding:12px;border-radius:26px;background:radial-gradient(circle at 50% 40%,#20242c,#14161b 72%);box-shadow:inset 0 2px 7px rgba(0,0,0,.6),0 8px 22px rgba(0,0,0,.5),0 0 0 1px #2b2f38;}
-  .dpad button{background:linear-gradient(180deg,#2c313b,#1e222a);border:1px solid #3b414c;border-radius:18px;color:var(--sari);font-size:22px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #101216,inset 0 1px 0 rgba(255,255,255,.06);transition:transform .05s ease,box-shadow .05s ease,background .05s ease;touch-action:none;}
-  .dpad button:active{background:linear-gradient(180deg,var(--sari2),var(--sari));color:#111;transform:translateY(4px) scale(.97);box-shadow:0 0 0 #101216,0 0 22px rgba(255,196,0,.5);}
-  .dpad .hub{grid-area:2/2;align-self:center;justify-self:center;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#15181d,#242830);box-shadow:inset 0 1px 3px rgba(0,0,0,.75),0 1px 0 rgba(255,255,255,.04);pointer-events:none;}
-  #yukari{grid-area:1/2} #sol{grid-area:2/1} #sag{grid-area:2/3} #asagi{grid-area:3/2}
-  .ipucu{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;color:#5a616d;letter-spacing:.1em;font-weight:700;pointer-events:none;}
+  .ipucu{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:11px;color:#6a717d;letter-spacing:.12em;font-weight:800;pointer-events:none;}
+  .ipucu b{color:var(--sari);}
   .v{display:inline-block;transform-origin:left center;}
   .v.pop{animation:degerPop .3s ease;}
   @keyframes degerPop{0%{transform:scale(1);}38%{transform:scale(1.32);}100%{transform:scale(1);}}
@@ -106,6 +105,7 @@
   <div class="stat"><span class="k">KAT</span><span class="v" id="binaV">0</span></div>
   <div class="stat"><span class="k">REKOR</span><span class="v" id="rekorV">0</span></div>
   <div class="araclar">
+    <button id="tamEkran" aria-label="Tam ekran">⛶</button>
     <button id="ses" aria-label="Ses">🔊</button>
     <button id="duraklat" aria-label="Mola">II</button>
   </div>
@@ -116,21 +116,11 @@
 <div id="saha">
   <canvas id="cv"></canvas>
   <div id="kaplama"></div>
-  <div class="ipucu">PARMAĞINLA KAYDIR &nbsp;•&nbsp; YA DA TUŞLARA BAS</div>
-</div>
-
-<div id="pad">
-  <div class="dpad">
-    <button id="yukari" aria-label="Yukarı">▲</button>
-    <button id="sol" aria-label="Sol">◀</button>
-    <span class="hub" aria-hidden="true"></span>
-    <button id="sag" aria-label="Sağ">▶</button>
-    <button id="asagi" aria-label="Aşağı">▼</button>
-  </div>
+  <div class="ipucu">PARMAĞINLA <b>SÜRÜKLE</b> — YILAN O YÖNE DÖNER</div>
 </div>
 
 <script>
-const COLS=15, ROWS=19;
+let COLS=15, ROWS=19;
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d',{alpha:false});
 const kaplama=document.getElementById('kaplama');
 const skorV=document.getElementById('skorV'), binaV=document.getElementById('binaV'), rekorV=document.getElementById('rekorV');
@@ -159,7 +149,7 @@ function ozetle(arr){
 
 let hucre=20, dpr=1, durum='hazir', zorluk='kolay';
 let yilan, yon, sonYon, kuyruk, yem, altin, engeller, skor, kat, malzeme, hiz, birikim, onceki, rekor=0, buyudu=false;
-let parcaciklar=[], yazilar=[], sesAcik=true, ac=null;
+let parcaciklar=[], yazilar=[], sesAcik=true, ac=null, sonAdim=0;
 let isim='', tablo=[], tabloDurum='yukleniyor';
 const zemin=document.createElement('canvas'), zctx=zemin.getContext('2d');
 const cache={};
@@ -256,7 +246,14 @@ async function paylas(btn){
 function olcule(){
   const saha=document.getElementById('saha');
   const w=saha.clientWidth-18, h=saha.clientHeight-18;
-  hucre=Math.max(12,Math.floor(Math.min(w/COLS,h/ROWS)));
+  if(durum!=='oynanir'&&durum!=='duraklatildi'){
+    // ızgarayı ekranın gerçek en-boy oranına göre yeniden kur: boşluk kalmadan tam doldur
+    hucre=Math.max(16,Math.min(34,Math.round(Math.min(w,h)/15)));
+    COLS=Math.max(10,Math.floor(w/hucre));
+    ROWS=Math.max(10,Math.floor(h/hucre));
+  }else{
+    hucre=Math.max(12,Math.floor(Math.min(w/COLS,h/ROWS)));
+  }
   dpr=Math.min(window.devicePixelRatio||1,1.5);
   cv.style.width=(hucre*COLS)+'px'; cv.style.height=(hucre*ROWS)+'px';
   cv.width=Math.round(hucre*COLS*dpr); cv.height=Math.round(hucre*ROWS*dpr);
@@ -288,6 +285,33 @@ function sim(e){
 }
 let olcuBek=null;
 window.addEventListener('resize',()=>{ clearTimeout(olcuBek); olcuBek=setTimeout(olcule,120); },{passive:true});
+
+/* --- tam ekran --- */
+const tamEkranBtn=document.getElementById('tamEkran');
+function teEleman(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
+async function tamEkranAc(){
+  const el=document.documentElement;
+  try{
+    if(el.requestFullscreen) await el.requestFullscreen({navigationUI:'hide'}).catch(()=>{});
+    else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  }catch(e){}
+  try{ if(screen.orientation&&screen.orientation.lock) await screen.orientation.lock('portrait').catch(()=>{}); }catch(e){}
+}
+function tamEkranKapat(){
+  try{
+    if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }catch(e){}
+}
+function tamEkranGuncelle(){
+  const acik=!!teEleman();
+  if(tamEkranBtn) tamEkranBtn.textContent=acik?'⛶':'⛶';
+  if(tamEkranBtn) tamEkranBtn.setAttribute('aria-pressed',acik?'true':'false');
+  clearTimeout(olcuBek); olcuBek=setTimeout(olcule,120);
+}
+document.addEventListener('fullscreenchange',tamEkranGuncelle);
+document.addEventListener('webkitfullscreenchange',tamEkranGuncelle);
+if(tamEkranBtn) tamEkranBtn.onclick=()=>{ teEleman()?tamEkranKapat():tamEkranAc(); };
 
 /* --- ses --- */
 function bip(f,sure,tip){
@@ -322,7 +346,8 @@ function yemKoy(){
   const p=bosHucre(); if(p) yem={x:p.x,y:p.y,e:m.e,p:m.p};
 }
 function basla(){
-  yilan=[{x:7,y:12},{x:7,y:13},{x:7,y:14}];
+  const midX=Math.floor(COLS/2), midY=Math.floor(ROWS/2);
+  yilan=[{x:midX,y:midY-1},{x:midX,y:midY},{x:midX,y:midY+1}];
   yon={x:0,y:-1}; sonYon={x:0,y:-1}; kuyruk=[];
   engeller=[]; altin=null; yem=null; buyudu=false;
   skor=0; kat=0; malzeme=0; hiz=190; birikim=0; onceki=performance.now();
@@ -333,6 +358,7 @@ function basla(){
   bip(440,.08);
 }
 function adim(){
+  sonAdim=performance.now();
   if(kuyruk.length) yon=kuyruk.shift();
   sonYon=yon;
   let bas={x:yilan[0].x+yon.x, y:yilan[0].y+yon.y};
@@ -509,16 +535,15 @@ function cevir(nx,ny){
   const son=kuyruk.length?kuyruk[kuyruk.length-1]:yon;
   if(son.x===-nx&&son.y===-ny) return;
   if(son.x===nx&&son.y===ny) return;
-  if(kuyruk.length<2) kuyruk.push({x:nx,y:ny});
+  if(kuyruk.length<2){
+    kuyruk.push({x:nx,y:ny});
+    if(performance.now()-sonAdim>=60) birikim=hiz;   // dönüşü anında uygula
+  }
 }
 function tus(id,fn){
   const el=document.getElementById(id);
   el.addEventListener('pointerdown',e=>{ e.preventDefault(); fn(); });
 }
-tus('yukari',()=>cevir(0,-1));
-tus('asagi',()=>cevir(0,1));
-tus('sol',()=>cevir(-1,0));
-tus('sag',()=>cevir(1,0));
 tus('duraklat',duraklat);
 document.getElementById('ses').onclick=function(){ sesAcik=!sesAcik; this.textContent=sesAcik?'🔊':'🔇'; };
 
@@ -545,7 +570,7 @@ addEventListener('keydown',e=>{
 let bx=0,by=0,aktif=false;
 const saha=document.getElementById('saha');
 const ipucuEl=document.querySelector('.ipucu');
-function esikPx(){ return Math.max(15, hucre*.5); }
+function esikPx(){ return Math.max(12, hucre*.42); }
 saha.addEventListener('touchstart',e=>{ aktif=true; bx=e.touches[0].clientX; by=e.touches[0].clientY; },{passive:true});
 saha.addEventListener('touchmove',e=>{
   if(!aktif) return;
@@ -582,6 +607,7 @@ function acilis(){
   document.getElementById('baslaBtn').onclick=()=>{
     isim=(giris.value||'').trim().slice(0,14);
     if(isim) isimKaydet();
+    if(!teEleman()) tamEkranAc();
     basla();
   };
 }
