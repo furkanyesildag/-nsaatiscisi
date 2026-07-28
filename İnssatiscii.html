@@ -461,7 +461,10 @@ function cevir(nx,ny){
   const son=kuyruk.length?kuyruk[kuyruk.length-1]:yon;
   if(son.x===-nx&&son.y===-ny) return;
   if(son.x===nx&&son.y===ny) return;
-  if(kuyruk.length<2) kuyruk.push({x:nx,y:ny});
+  if(kuyruk.length<2){
+    kuyruk.push({x:nx,y:ny});
+    if(kuyruk.length===1&&birikim>hiz*.12) birikim=hiz;
+  }
 }
 function tus(id,fn){
   const el=document.getElementById(id);
