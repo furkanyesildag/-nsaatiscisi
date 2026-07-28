@@ -121,7 +121,10 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import { getDatabase, ref as dbRef, get as dbGet, set as dbSet } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
 const COLS=15, ROWS=19;
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d',{alpha:false});
 const kaplama=document.getElementById('kaplama');
@@ -138,7 +141,38 @@ let isim='', tablo=[], tabloDurum='yukleniyor';
 const zemin=document.createElement('canvas'), zctx=zemin.getContext('2d');
 const cache={};
 
-/* --- depo: artifact / tarayici / bellek --- */
+/* --- depo: firebase (ortak) / tarayici (kisisel) / bellek --- */
+const firebaseConfig = {
+  apiKey: "AIzaSyA4aMDHcedJE3d_zkGoa8ZHDYTq4RGE0_Q",
+  authDomain: "insaat-yilani.firebaseapp.com",
+  databaseURL: "https://insaat-yilani-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "insaat-yilani",
+  storageBucket: "insaat-yilani.firebasestorage.app",
+  messagingSenderId: "477122952131",
+  appId: "1:477122952131:web:5482fa8b18a49ce10a9b76"
+};
+let fbDb=null;
+try{ fbDb=getDatabase(initializeApp(firebaseConfig)); }catch(e){}
+if(fbDb){
+  window.storage={
+    get: async(anahtar,ortakMi)=>{
+      if(!ortakMi){
+        try{ return {value:localStorage.getItem(anahtar)}; }catch(e){ return {value:null}; }
+      }
+      try{
+        const anlik=await dbGet(dbRef(fbDb,anahtar.replace(/:/g,'/')));
+        return {value:anlik.exists()?anlik.val():null};
+      }catch(e){ return {value:null}; }
+    },
+    set: async(anahtar,deger,ortakMi)=>{
+      if(!ortakMi){
+        try{ localStorage.setItem(anahtar,deger); }catch(e){}
+        return;
+      }
+      try{ await dbSet(dbRef(fbDb,anahtar.replace(/:/g,'/')),deger); }catch(e){}
+    }
+  };
+}
 const ORTAK = !!(window.storage && window.storage.get);
 const bellek = {};
 async function oku(anahtar, ortakMi){
