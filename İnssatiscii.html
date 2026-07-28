@@ -567,22 +567,26 @@ addEventListener('keydown',e=>{
   else if(k===' '){e.preventDefault(); (durum==='hazir'||durum==='bitti')?basla():duraklat();}
 });
 
-let bx=0,by=0,aktif=false;
+let bx=0,by=0,aktif=false,donuldu=false;
 const saha=document.getElementById('saha');
 const ipucuEl=document.querySelector('.ipucu');
 function esikPx(){ return Math.max(12, hucre*.42); }
-saha.addEventListener('touchstart',e=>{ aktif=true; bx=e.touches[0].clientX; by=e.touches[0].clientY; },{passive:true});
+saha.addEventListener('touchstart',e=>{
+  if(durum!=='oynanir') return;
+  aktif=true; donuldu=false;
+  bx=e.touches[0].clientX; by=e.touches[0].clientY;
+},{passive:true});
 saha.addEventListener('touchmove',e=>{
-  if(!aktif) return;
+  if(!aktif||donuldu) return;
   const x=e.touches[0].clientX, y=e.touches[0].clientY;
   const dx=x-bx, dy=y-by, t=esikPx();
   if(Math.abs(dx)<t&&Math.abs(dy)<t) return;
   if(e.cancelable) e.preventDefault();
+  donuldu=true;   // bu dokunuş için tek dönüş: parmak kalkana kadar tekrar tetiklenmez
   if(Math.abs(dx)>Math.abs(dy)) cevir(dx>0?1:-1,0); else cevir(0,dy>0?1:-1);
-  bx=x; by=y;
 },{passive:false});
-saha.addEventListener('touchend',()=>{ aktif=false; },{passive:true});
-saha.addEventListener('touchcancel',()=>{ aktif=false; },{passive:true});
+saha.addEventListener('touchend',()=>{ aktif=false; donuldu=false; },{passive:true});
+saha.addEventListener('touchcancel',()=>{ aktif=false; donuldu=false; },{passive:true});
 
 /* --- acilis --- */
 function acilis(){
