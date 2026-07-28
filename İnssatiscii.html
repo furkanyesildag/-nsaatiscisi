@@ -494,18 +494,27 @@ addEventListener('keydown',e=>{
   else if(k===' '){e.preventDefault(); (durum==='hazir'||durum==='bitti')?basla():duraklat();}
 });
 
-let bx=0,by=0,aktif=false;
+let tId=null, tLx=0, tLy=0, tYonVar=false;
+const ESIK_ILK=13, ESIK_DEVAM=24;
 const saha=document.getElementById('saha');
-saha.addEventListener('touchstart',e=>{ aktif=true; bx=e.touches[0].clientX; by=e.touches[0].clientY; },{passive:true});
-saha.addEventListener('touchmove',e=>{
-  if(!aktif) return;
-  const x=e.touches[0].clientX, y=e.touches[0].clientY;
-  const dx=x-bx, dy=y-by;
-  if(Math.abs(dx)<18&&Math.abs(dy)<18) return;
-  if(Math.abs(dx)>Math.abs(dy)) cevir(dx>0?1:-1,0); else cevir(0,dy>0?1:-1);
-  bx=x; by=y;
+function tBul(list){ for(let i=0;i<list.length;i++) if(list[i].identifier===tId) return list[i]; return null; }
+saha.addEventListener('touchstart',e=>{
+  const t=e.changedTouches[0];
+  if(tId!==null) return;
+  tId=t.identifier; tLx=t.clientX; tLy=t.clientY; tYonVar=false;
 },{passive:true});
-saha.addEventListener('touchend',()=>aktif=false,{passive:true});
+saha.addEventListener('touchmove',e=>{
+  if(tId===null) return;
+  const t=tBul(e.touches); if(!t) return;
+  const dx=t.clientX-tLx, dy=t.clientY-tLy;
+  const esik=tYonVar?ESIK_DEVAM:ESIK_ILK;
+  if(Math.abs(dx)<esik&&Math.abs(dy)<esik) return;
+  if(Math.abs(dx)>Math.abs(dy)) cevir(dx>0?1:-1,0); else cevir(0,dy>0?1:-1);
+  tLx=t.clientX; tLy=t.clientY; tYonVar=true;
+},{passive:true});
+function tBirak(e){ if(tBul(e.changedTouches)) tId=null; }
+saha.addEventListener('touchend',tBirak,{passive:true});
+saha.addEventListener('touchcancel',tBirak,{passive:true});
 
 /* --- acilis --- */
 function acilis(){
