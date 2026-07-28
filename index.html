@@ -18,12 +18,13 @@
     --turuncu:#ff6b2c; --beton:#8e96a3; --yesil:#25d366;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  html,body{height:100%;overscroll-behavior:none;}
+  html{touch-action:none;}
   body{
     background:var(--asfalt2);color:#fff;
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     display:flex;flex-direction:column;height:100dvh;overflow:hidden;
-    touch-action:none;user-select:none;
+    touch-action:none;user-select:none;overscroll-behavior:none;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   .serit{height:10px;flex:none;background:repeating-linear-gradient(45deg,var(--sari) 0 14px,#111 14px 28px);animation:seritKay 1.4s linear infinite;box-shadow:0 3px 10px rgba(0,0,0,.5);}
@@ -43,7 +44,7 @@
   #siluet i{display:block;width:9px;background:linear-gradient(180deg,var(--turuncu),#7a2f10);border-top:2px solid var(--sari);border-radius:1px;}
   #siluetBos{font-size:9px;letter-spacing:.18em;color:#444a55;font-weight:800;}
 
-  #saha{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(130% 100% at 50% 0%,#1b1f27 0%,var(--asfalt2) 62%);min-height:0;}
+  #saha{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(130% 100% at 50% 0%,#1b1f27 0%,var(--asfalt2) 62%);min-height:0;touch-action:none;overscroll-behavior:none;}
   canvas{display:block;border:3px solid var(--sari);border-radius:6px;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 12px 40px rgba(0,0,0,.5),0 0 26px rgba(255,196,0,.12);}
 
   #kaplama{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;background:rgba(10,11,14,.93);padding:18px;overflow-y:auto;}
@@ -135,7 +136,7 @@ const VINC={e:'🏗️',p:50};
    Firebase Realtime Database adresini tırnakların arasına yapıştır. Örn:
    const FIREBASE_DB='https://insaat-yilani-default-rtdb.firebaseio.com';
    Boş kalırsa tablo yalnızca bu cihazda tutulur.               */
-const FIREBASE_DB='';
+const FIREBASE_DB='https://insaat-yilani-default-rtdb.europe-west1.firebasedatabase.app';
 /* =============================================================== */
 const ONLINE=/^https:\/\//.test(FIREBASE_DB);
 const SKOR_URL=ONLINE?FIREBASE_DB.replace(/\/+$/,'')+'/skorlar.json':'';
@@ -464,15 +465,21 @@ function ciz(t){
     if(Math.abs(a.x-b.x)>esik||Math.abs(a.y-b.y)>esik) parcalar.push([b]);
     else parcalar[parcalar.length-1].push(b);
   }
-  ctx.setLineDash([]); ctx.lineWidth=kalinlik; ctx.strokeStyle='#ffc400';
-  ctx.shadowColor='rgba(255,180,0,.5)'; ctx.shadowBlur=Math.max(4,hucre*.35);
+  ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(255,180,0,.30)'; ctx.lineWidth=kalinlik*1.4;
   for(const p of parcalar){
     ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y);
     for(let i=1;i<p.length;i++) ctx.lineTo(p[i].x,p[i].y);
     if(p.length===1) ctx.lineTo(p[0].x,p[0].y);
     ctx.stroke();
   }
-  ctx.shadowBlur=0; ctx.shadowColor='transparent';
+  ctx.lineWidth=kalinlik; ctx.strokeStyle='#ffc400';
+  for(const p of parcalar){
+    ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y);
+    for(let i=1;i<p.length;i++) ctx.lineTo(p[i].x,p[i].y);
+    if(p.length===1) ctx.lineTo(p[0].x,p[0].y);
+    ctx.stroke();
+  }
   ctx.strokeStyle='rgba(24,24,26,.38)'; ctx.lineWidth=kalinlik*.9;
   ctx.setLineDash([hucre*.20,hucre*.36]); ctx.lineDashOffset=-t*hucre;
   for(const p of parcalar){
