@@ -14,12 +14,13 @@
     --turuncu:#ff6b2c; --beton:#8e96a3; --yesil:#25d366;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
+  html,body{height:100%;overscroll-behavior:none;}
+  html{touch-action:none;}
   body{
     background:var(--asfalt2);color:#fff;
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     display:flex;flex-direction:column;height:100dvh;overflow:hidden;
-    touch-action:none;user-select:none;
+    touch-action:none;user-select:none;overscroll-behavior:none;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   .serit{height:9px;flex:none;background:repeating-linear-gradient(45deg,var(--sari) 0 14px,#111 14px 28px);}
@@ -38,7 +39,7 @@
   #siluet i{display:block;width:9px;background:linear-gradient(180deg,var(--turuncu),#7a2f10);border-top:2px solid var(--sari);border-radius:1px;}
   #siluetBos{font-size:9px;letter-spacing:.18em;color:#444a55;font-weight:800;}
 
-  #saha{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:var(--asfalt2);min-height:0;}
+  #saha{flex:1;position:relative;display:flex;align-items:center;justify-content:center;background:var(--asfalt2);min-height:0;touch-action:none;overscroll-behavior:none;}
   canvas{display:block;border:3px solid var(--sari);border-radius:4px;}
 
   #kaplama{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;background:rgba(10,11,14,.93);padding:18px;overflow-y:auto;}
@@ -494,27 +495,26 @@ addEventListener('keydown',e=>{
   else if(k===' '){e.preventDefault(); (durum==='hazir'||durum==='bitti')?basla():duraklat();}
 });
 
-let tId=null, tLx=0, tLy=0, tYonVar=false;
-const ESIK_ILK=13, ESIK_DEVAM=24;
+let tLx=0, tLy=0, tAktif=false, tYonVar=false;
+const ESIK_ILK=11, ESIK_DEVAM=19;
 const saha=document.getElementById('saha');
-function tBul(list){ for(let i=0;i<list.length;i++) if(list[i].identifier===tId) return list[i]; return null; }
 saha.addEventListener('touchstart',e=>{
-  const t=e.changedTouches[0];
-  if(tId!==null) return;
-  tId=t.identifier; tLx=t.clientX; tLy=t.clientY; tYonVar=false;
+  if(!e.touches.length) return;
+  tAktif=true; tYonVar=false;
+  tLx=e.touches[0].clientX; tLy=e.touches[0].clientY;
 },{passive:true});
 saha.addEventListener('touchmove',e=>{
-  if(tId===null) return;
-  const t=tBul(e.touches); if(!t) return;
+  if(!tAktif||!e.touches.length) return;
+  e.preventDefault();
+  const t=e.touches[0];
   const dx=t.clientX-tLx, dy=t.clientY-tLy;
   const esik=tYonVar?ESIK_DEVAM:ESIK_ILK;
   if(Math.abs(dx)<esik&&Math.abs(dy)<esik) return;
   if(Math.abs(dx)>Math.abs(dy)) cevir(dx>0?1:-1,0); else cevir(0,dy>0?1:-1);
   tLx=t.clientX; tLy=t.clientY; tYonVar=true;
-},{passive:true});
-function tBirak(e){ if(tBul(e.changedTouches)) tId=null; }
-saha.addEventListener('touchend',tBirak,{passive:true});
-saha.addEventListener('touchcancel',tBirak,{passive:true});
+},{passive:false});
+saha.addEventListener('touchend',()=>{ tAktif=false; },{passive:true});
+saha.addEventListener('touchcancel',()=>{ tAktif=false; },{passive:true});
 
 /* --- acilis --- */
 function acilis(){
